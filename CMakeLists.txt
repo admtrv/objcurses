@@ -33,3 +33,14 @@ target_include_directories(${PROJECT_NAME} PRIVATE ${CURSES_INCLUDE_DIR})
 
 # linking math library
 target_link_libraries(${PROJECT_NAME} PRIVATE m)
+
+# Install rules
+include(GNUInstallDirs)
+
+install(TARGETS ${PROJECT_NAME}
+RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+)
+
+install(FILES LICENSE.md
+   DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/${PROJECT_NAME}
+)
