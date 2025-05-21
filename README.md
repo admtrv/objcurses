@@ -77,6 +77,23 @@ q                  Quit
 
 Latest release available [here](https://github.com/admtrv/objcurses/releases). Replace `<version>` with the actual release version, e.g. `1.2.3`.
 
+## From AUR (Arch User Repository)
+
+Arch Linux users can install `objcurses` from the AUR using an AUR helper (e.g., `yay`, `paru`):
+
+```bash
+yay -S objcurses
+# or
+paru -S objcurses
+```
+
+Alternatively, you can build it manually by cloning the AUR repository:
+```bash
+git clone [https://aur.archlinux.org/objcurses.git](https://aur.archlinux.org/objcurses.git)
+cd objcurses
+makepkg -si
+```
+
 ## Manual (build from source)
 
 To manually compile and install `objcurses`, follow these steps:
