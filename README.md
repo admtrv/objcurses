@@ -40,6 +40,7 @@ objcurses [OPTIONS] <file.obj>
 ```
 -c, --color        Enable colors from .mtl file
 -l, --light        Disable light rotation
+-a, --animate      Start with animated object
 -f, --flip         Flip faces winding order
 -x, --invert-x     Flip geometry along X axis
 -y, --invert-y     Flip geometry along Y axis

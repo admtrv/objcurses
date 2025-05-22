@@ -11,6 +11,7 @@
 #include <optional>
 #include <string>
 #include <vector>
+#include <chrono>
 
 #include "entities/geometry/object.h"
 #include "entities/rendering/buffer.h"
@@ -24,6 +25,8 @@ extern "C" const char *__asan_default_options() {
 }
 #endif
 
+using SteadyClock = std::chrono::steady_clock;
+const auto t0 = SteadyClock::now();
 
 // ncurses
 
@@ -69,6 +72,7 @@ static void print_help()
         "Options:\n"
         "  -c, --color          Enable colors from .mtl file\n"
         "  -l, --light          Disable light rotation\n"
+        "  -a, --animate        Start with animated object\n"
         "  -f, --flip           Flip faces winding order\n"
         "  -x, --invert-x       Flip geometry along X axis\n"
         "  -y, --invert-y       Flip geometry along Y axis\n"
@@ -100,6 +104,7 @@ struct Args {
     bool invert_x = false;          // -x / --invert-x
     bool invert_y = false;          // -y / --invert-y
     bool invert_z = false;          // -z / --invert-z
+    bool animate = false;           // -a / --animate
 };
 
 static Args parse_args(int argc, char **argv)
@@ -131,6 +136,10 @@ static Args parse_args(int argc, char **argv)
         else if (arg == "-l" || arg == "--light")
         {
             a.static_light = true;
+        }
+        else if (arg == "-a" || arg == "--animate")
+        {
+            a.animate = true;
         }
         else if (arg == "-f" || arg == "--flip")
         {
@@ -186,17 +195,10 @@ void render_hud(const Camera &cam)
     mvprintw(2, 0, "altitude %6.1f deg", clamp0(rad2deg(cam.altitude)));
 }
 
-bool handle_input(int ch, Camera &cam, bool &hud)
+void handle_control(const int ch, Camera &cam)
 {
     switch (ch)
     {
-        case 'q': case 'Q':     // exit
-            return false;
-
-        case '\t':              // hud
-            hud = !hud;
-            break;
-
         // keys / vim / wasd
         case KEY_LEFT: case 'h': case 'H': case 'a' : case 'A':     // left rotation
             cam.rotate_left();
@@ -204,23 +206,23 @@ bool handle_input(int ch, Camera &cam, bool &hud)
         case KEY_RIGHT: case 'l': case 'L': case 'd': case 'D':     // right rotation
             cam.rotate_right();
             break;
-        case KEY_UP: case 'k': case 'K': case 'w': case 'W':                // up rotation
+        case KEY_UP: case 'k': case 'K': case 'w': case 'W':        // up rotation
             cam.rotate_up();
             break;
-        case KEY_DOWN: case 'j': case 'J': case 's': case 'S':              // down rotation
+        case KEY_DOWN: case 'j': case 'J': case 's': case 'S':      // down rotation
             cam.rotate_down();
             break;
 
         // +- / io
-        case '+': case '=': case 'i': case 'I':                 // zoom in
+        case '+': case '=': case 'i': case 'I':     // zoom in
             cam.zoom_in();
             break;
-        case '-': case 'o': case 'O':                           // zoom out
+        case '-': case 'o': case 'O':               // zoom out
             cam.zoom_out();
             break;
+        default:
+            break;
     }
-
-    return true;
 }
 
 // main
@@ -278,9 +280,16 @@ int main(int argc, char **argv)
     Light light;        // default
     bool hud = false;
 
+    // animation
+    bool rotate = args.animate;
+
     // main render loop
     while (true)
     {
+        if (rotate) {
+            cam.rotate_left(ANIMATION_STEP);
+        }
+
         // clear buffer
         buf.clear();
 
@@ -307,11 +316,25 @@ int main(int argc, char **argv)
             getmaxyx(stdscr, rows, cols);
             const float lx = logical_y * static_cast<float>(cols) / (static_cast<float>(rows) * CHAR_ASPECT_RATIO);
             buf = Buffer(static_cast<unsigned int>(cols), static_cast<unsigned int>(rows), lx, logical_y);
+            continue;
         }
 
-        if (!handle_input(ch, cam, hud))
+        if (ch == 'q' || ch == 'Q')     // exit
         {
             break;
+        }
+
+        if (ch == '\t')                 // toggle hud
+        {
+            hud = !hud;
+            continue;
+        }
+
+        if (ch != ERR)
+        {
+            rotate = false;
+
+            handle_control(ch, cam);
         }
     }
 

@@ -23,29 +23,29 @@ public:
         altitude(std::clamp(altitude, -PI / 2, PI / 2)),
         zoom(std::clamp(zoom, ZOOM_MIN, ZOOM_MAX)) {}
 
-    void rotate_left()
+    void rotate_left(float degree = ANGLE_STEP)
     {
-        azimuth  = rad_norm(azimuth  + deg2rad(ANGLE_STEP));
+        azimuth  = rad_norm(azimuth  + deg2rad(degree));
     }
-    void rotate_right()
+    void rotate_right(float degree = ANGLE_STEP)
     {
-        azimuth  = rad_norm(azimuth  - deg2rad(ANGLE_STEP));
+        azimuth  = rad_norm(azimuth  - deg2rad(degree));
     }
-    void rotate_up()
+    void rotate_up(float degree = ANGLE_STEP)
     {
-        altitude = std::min(altitude + deg2rad(ANGLE_STEP),  PI / 2);
+        altitude = std::min(altitude + deg2rad(degree),  PI / 2);
     }
-    void rotate_down()
+    void rotate_down(float degree = ANGLE_STEP)
     {
-        altitude = std::max(altitude - deg2rad(ANGLE_STEP), -PI / 2);
+        altitude = std::max(altitude - deg2rad(degree), -PI / 2);
     }
 
-    void zoom_in()
+    void zoom_in(float step = ZOOM_STEP)
     {
-        zoom = std::min(zoom + ZOOM_STEP, ZOOM_MAX);
+        zoom = std::min(zoom + step, ZOOM_MAX);
     }
-    void zoom_out()
+    void zoom_out(float step = ZOOM_STEP)
     {
-        zoom = std::max(zoom - ZOOM_STEP, ZOOM_MIN);
+        zoom = std::max(zoom - step, ZOOM_MIN);
     }
 };
