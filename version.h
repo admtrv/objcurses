@@ -5,4 +5,4 @@
 #pragma once
 
 inline constexpr auto APP_NAME = "objcurses";
-inline constexpr auto APP_VERSION = "1.4.0";
+inline constexpr auto APP_VERSION = "1.4.1";

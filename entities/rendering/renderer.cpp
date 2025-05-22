@@ -56,7 +56,7 @@ void Renderer::render(Buffer &buf, const Object &obj, const Camera &cam, const L
     }
 
     // offset that centers the bounding box in logical space
-    const float off_x = (lx - (max_x - min_x)) * 0.5f - min_x;
+    const float off_x = 0.0f;
     const float off_y = (ly - (max_y - min_y)) * 0.5f - min_y;
     const Vec3 offset(off_x, off_y, 0.0f);
 
