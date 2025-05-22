@@ -49,8 +49,9 @@ public:
     bool load(const std::string &obj_filename, bool color_support = false);
 
 
-    void normalize();   // normalize object
-    void flip_faces();  // flip faces winding order
+    void normalize();           // normalize object
+    void scale(float factor);   // scale object
+    void flip_faces();          // flip faces winding order
 
     void invert_x();    // invert axes
     void invert_y();

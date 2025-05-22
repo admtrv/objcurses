@@ -238,6 +238,9 @@ int main(int argc, char **argv)
     // normalize to unit cube
     obj.normalize();
 
+    // resize to make model >= 0.5 screen size
+    obj.scale(3.0f);
+
     // flip faces winding order
     if (args.flip_faces)
         obj.flip_faces();

@@ -355,6 +355,14 @@ std::optional<int> Object::find_material(const std::string &material_name) const
     return (it != materials.end()) ? std::make_optional(std::distance(materials.begin(), it)) : std::nullopt;
 }
 
+void Object::scale(float factor)
+{
+    for (auto &v : vertices)
+    {
+        v *= factor;
+    }
+}
+
 // normalize verts of object
 void Object::normalize()
 {
