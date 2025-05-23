@@ -32,6 +32,14 @@ const auto t0 = SteadyClock::now();
 
 // ncurses
 
+enum class Theme {
+    Dark = 1,
+    Light = 2,
+    Transparent = 3
+};
+
+static int g_hud_pair = 0; // hud color pair
+
 void init_ncurses()
 {
     initscr();              // start ncurses mode
@@ -41,27 +49,59 @@ void init_ncurses()
     timeout(1);             // make getch() non-blocking
 }
 
-void init_colors(const std::vector<Material> &materials)
+void init_colors(const std::vector<Material> &materials, Theme theme)
 {
     if (!has_colors() || !can_change_color())
         return;
 
     start_color();
 
-    for (size_t i = 0; i < materials.size(); ++i)
-    {
-        const int pair = static_cast<int>(i) + 1;
+    const short BG_DEFAULT = -1;
 
-        if (pair >= COLORS || pair >= COLOR_PAIRS)
+    short bg;
+    short hud;
+
+    switch (theme)
+    {
+        case Theme::Dark:
+            bg = COLOR_BLACK;
+            hud = COLOR_WHITE;
             break;
+        case Theme::Light:
+            bg = COLOR_WHITE;
+            hud = COLOR_BLACK;
+            break;
+        case Theme::Transparent:
+            bg = BG_DEFAULT;
+            hud = COLOR_WHITE;
+            break;
+    }
+
+    if (bg == BG_DEFAULT)
+        use_default_colors();
+
+    size_t limit = std::min(materials.size(), static_cast<size_t>(COLOR_PAIRS - 2));
+
+    for (size_t i = 0; i < limit; i++)
+    {
+        int pair = static_cast<int>(i) + 1;
 
         const auto &d = materials[i].diffuse; // 0–1
-        init_color(pair,
-                   static_cast<short>(std::clamp(d.x, 0.0f, 1.0f) * 1000.0f),
-                   static_cast<short>(std::clamp(d.y, 0.0f, 1.0f) * 1000.0f),
-                   static_cast<short>(std::clamp(d.z, 0.0f, 1.0f) * 1000.0f));
-        init_pair(pair, pair, 0);
+        if (can_change_color())
+            init_color(pair,
+                       static_cast<short>(std::clamp(d.x, 0.0f, 1.0f) * 1000.0f),
+                       static_cast<short>(std::clamp(d.y, 0.0f, 1.0f) * 1000.0f),
+                       static_cast<short>(std::clamp(d.z, 0.0f, 1.0f) * 1000.0f));
+
+        init_pair(pair, pair, bg);
     }
+
+    g_hud_pair = static_cast<int>(limit) + 1;
+
+    if (g_hud_pair < COLOR_PAIRS)
+        init_pair(g_hud_pair, hud, bg);
+
+    bkgd(' ' | COLOR_PAIR(g_hud_pair));
 }
 
 // cli
@@ -72,9 +112,9 @@ static void print_help()
         "Usage: " << APP_NAME << " [OPTIONS] <file.obj>\n"
         "\n"
         "Options:\n"
-        "  -c, --color          Enable colors from .mtl file\n"
+        "  -c, --color <theme>  Enable colors support, optional theme {dark|light|transparent}\n"
         "  -l, --light          Disable light rotation\n"
-        "  -a, --animate <deg>  Start with animated object [default: " << std::fixed << std::setprecision(1) << ANIMATION_STEP << std::defaultfloat << " deg/s]\n"
+        "  -a, --animate <deg>  Start with animated object, optional speed [default: " << std::fixed << std::setprecision(1) << ANIMATION_STEP << std::defaultfloat << " deg/s]\n"
         "  -z, --zoom <x>       Provide initial zoom [default: " << std::fixed << std::setprecision(1) << ZOOM_START << std::defaultfloat << " x]\n"
         "      --flip           Flip faces winding order\n"
         "      --invert-x       Flip geometry along X axis\n"
@@ -101,7 +141,10 @@ static void print_version()
 
 struct Args {
     std::filesystem::path input_file;
+
     bool color_support = false;         // -c / --color
+    Theme theme = Theme::Dark;
+
     bool static_light = false;          // -l / --light
     bool flip_faces = false;            // -f / --flip
     bool invert_x = false;              // -x / --invert-x
@@ -139,6 +182,23 @@ static Args parse_args(int argc, char **argv)
         if (arg == "-c" || arg == "--color")
         {
             a.color_support = true;
+
+            if (i + 1 < argc && argv[i + 1][0] != '-')
+            {
+                std::string theme = argv[++i];
+
+                if (theme == "dark")
+                    a.theme = Theme::Dark;
+                else if (theme == "light")
+                    a.theme = Theme::Light;
+                else if (theme == "transparent")
+                    a.theme = Theme::Transparent;
+                else
+                {
+                    std::cerr << "error: invalid theme\n";
+                    std::exit(1);
+                }
+            }
         }
         else if (arg == "-l" || arg == "--light")
         {
@@ -228,10 +288,16 @@ static Args parse_args(int argc, char **argv)
 
 void render_hud(const Camera &cam, const float fps)
 {
+    if (g_hud_pair)
+        attron(COLOR_PAIR(g_hud_pair));
+
     mvprintw(0, 0, "framerate %6d fps", static_cast<int>(std::round(fps)));
     mvprintw(1, 0, "zoom      %6.1f x", cam.zoom);
     mvprintw(2, 0, "azimuth   %6.1f deg", clamp0(rad2deg(cam.azimuth)));
     mvprintw(3, 0, "altitude  %6.1f deg", clamp0(rad2deg(cam.altitude)));
+
+    if (g_hud_pair)
+        attroff(COLOR_PAIR(g_hud_pair));
 }
 
 void handle_control(const int ch, Camera &cam)
@@ -301,7 +367,7 @@ int main(int argc, char **argv)
 
     // init colors
     if (args.color_support)
-        init_colors(obj.materials);
+        init_colors(obj.materials, args.theme);
 
     // buffer
     int rows;

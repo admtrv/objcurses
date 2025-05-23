@@ -40,9 +40,9 @@ objcurses [OPTIONS] <file.obj>
 ## Options
 
 ```
--c, --color          Enable colors from .mtl file
+-c, --color <theme>  Enable colors support, optional theme {dark|light|transparent}
 -l, --light          Disable light rotation
--a, --animate <deg>  Start with animated object [default: 30.0 deg/s]
+-a, --animate <deg>  Start with animated object, optional speed [default: 30.0 deg/s]
 -z, --zoom <x>       Provide initial zoom [default: 1.0 x]
     --flip           Flip faces winding order
     --invert-x       Flip geometry along X axis
@@ -55,11 +55,12 @@ objcurses [OPTIONS] <file.obj>
 Examples:
 
 ```bash
-objcurses file.obj               # basic
-objcurses -c file.obj            # enable colors
-objcurses -c -a -z 1.5 file.obj  # start animation with zoom 1.5 x
-objcurses -c -a 10 file.obj      # start animation with speed 10.0 deg/s
-objcurses -c --invert-z file.obj # flip z axis if blender model 
+objcurses file.obj                # basic
+objcurses -c file.obj             # enable colors
+objcurses -c transparent file.obj # set transparent color theme
+objcurses -c -a -z 1.5 file.obj   # start animation with zoom 1.5 x
+objcurses -c -a 10 file.obj       # start animation with speed 10.0 deg/s
+objcurses -c --invert-z file.obj  # flip z axis if blender model 
 ```
 
 ## Controls
