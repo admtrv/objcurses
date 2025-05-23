@@ -185,19 +185,23 @@ static Args parse_args(int argc, char **argv)
 
             if (i + 1 < argc && argv[i + 1][0] != '-')
             {
-                std::string theme = argv[++i];
-
-                if (theme == "dark")
-                    a.theme = Theme::Dark;
-                else if (theme == "light")
-                    a.theme = Theme::Light;
-                else if (theme == "transparent")
-                    a.theme = Theme::Transparent;
-                else
+                std::string_view next{argv[i + 1]};
+                if (next == "dark")
                 {
-                    std::cerr << "error: invalid theme\n";
-                    std::exit(1);
+                    a.theme = Theme::Dark;
+                    ++i;
                 }
+                else if (next == "light")
+                {
+                    a.theme = Theme::Light;
+                    ++i;
+                }
+                else if (next == "transparent")
+                {
+                    a.theme = Theme::Transparent;
+                    ++i;
+                }
+                // else next - file name
             }
         }
         else if (arg == "-l" || arg == "--light")
@@ -210,15 +214,12 @@ static Args parse_args(int argc, char **argv)
 
             if (i + 1 < argc && argv[i + 1][0] != '-')
             {
-                auto val = safe_stof(argv[++i]);
-
-                if (!val)
+                if (auto val = safe_stof(argv[i + 1]); val)
                 {
-                    std::cerr<< "error: invalid speed value\n";
-                    std::exit(1);
+                    a.speed = val.value();
+                    ++i;
                 }
-
-                a.speed = val.value();
+                // else - file name
             }
         }
         else if (arg == "-z" || arg == "--zoom")
@@ -259,7 +260,7 @@ static Args parse_args(int argc, char **argv)
         {
             if (!a.input_file.empty())
             {
-                std::cerr << "error: more than one input file\n";
+                std::cerr << "error: more arguments than expected\n";
                 std::exit(1);
             }
             a.input_file = arg;
