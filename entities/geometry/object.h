@@ -17,6 +17,7 @@
 #include <cstring>
 
 #include "utils/algorithms.h"
+#include "utils/tools.h"
 
 // triangular face
 class Face {

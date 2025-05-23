@@ -12,10 +12,12 @@
 #include <string>
 #include <vector>
 #include <chrono>
+#include <thread>
 
 #include "entities/geometry/object.h"
 #include "entities/rendering/buffer.h"
 #include "entities/rendering/renderer.h"
+#include "utils/tools.h"
 #include "config.h"
 #include "version.h"
 
@@ -72,11 +74,12 @@ static void print_help()
         "Options:\n"
         "  -c, --color          Enable colors from .mtl file\n"
         "  -l, --light          Disable light rotation\n"
-        "  -a, --animate        Start with animated object\n"
-        "  -f, --flip           Flip faces winding order\n"
-        "  -x, --invert-x       Flip geometry along X axis\n"
-        "  -y, --invert-y       Flip geometry along Y axis\n"
-        "  -z, --invert-z       Flip geometry along Z axis\n"
+        "  -a, --animate <deg>  Start with animated object [default: " << std::fixed << std::setprecision(1) << ANIMATION_STEP << std::defaultfloat << " deg/s]\n"
+        "  -z, --zoom <x>       Provide initial zoom [default: " << std::fixed << std::setprecision(1) << ZOOM_START << std::defaultfloat << " x]\n"
+        "      --flip           Flip faces winding order\n"
+        "      --invert-x       Flip geometry along X axis\n"
+        "      --invert-y       Flip geometry along Y axis\n"
+        "      --invert-z       Flip geometry along Z axis\n"
         "  -h, --help           Print help\n"
         "  -v, --version        Print version\n"
         "\n"
@@ -98,13 +101,17 @@ static void print_version()
 
 struct Args {
     std::filesystem::path input_file;
-    bool color_support = false;     // -c / --color
-    bool static_light = false;      // -l / --light
-    bool flip_faces = false;        // -f / --flip
-    bool invert_x = false;          // -x / --invert-x
-    bool invert_y = false;          // -y / --invert-y
-    bool invert_z = false;          // -z / --invert-z
-    bool animate = false;           // -a / --animate
+    bool color_support = false;         // -c / --color
+    bool static_light = false;          // -l / --light
+    bool flip_faces = false;            // -f / --flip
+    bool invert_x = false;              // -x / --invert-x
+    bool invert_y = false;              // -y / --invert-y
+    bool invert_z = false;              // -z / --invert-z
+
+    bool animate = false;               // -a / --animate
+    float speed = ANIMATION_STEP;   // deg/s
+
+    float zoom = ZOOM_START;            // -z / --zoom
 };
 
 static Args parse_args(int argc, char **argv)
@@ -140,20 +147,51 @@ static Args parse_args(int argc, char **argv)
         else if (arg == "-a" || arg == "--animate")
         {
             a.animate = true;
+
+            if (i + 1 < argc && argv[i + 1][0] != '-')
+            {
+                auto val = safe_stof(argv[++i]);
+
+                if (!val)
+                {
+                    std::cerr<< "error: invalid speed value\n";
+                    std::exit(1);
+                }
+
+                a.speed = val.value();
+            }
         }
-        else if (arg == "-f" || arg == "--flip")
+        else if (arg == "-z" || arg == "--zoom")
+        {
+            if (++i == argc)
+            {
+                std::cerr << "error: zoom needs value\n";
+                std::exit(1);
+            }
+
+            auto val = safe_stof(argv[i]);
+
+            if (!val)
+            {
+                std::cerr << "error: invalid zoom value\n";
+                std::exit(1);
+            }
+
+            a.zoom = val.value();
+        }
+        else if (arg == "--flip")
         {
             a.flip_faces = true;
         }
-        else if (arg == "-x" || arg == "--invert-x")
+        else if (arg == "--invert-x")
         {
             a.invert_x = true;
         }
-        else if (arg == "-y" || arg == "--invert-y")
+        else if (arg == "--invert-y")
         {
             a.invert_y = true;
         }
-        else if (arg == "-z" || arg == "--invert-z")
+        else if (arg == "--invert-z")
         {
             a.invert_z = true;
         }
@@ -188,11 +226,12 @@ static Args parse_args(int argc, char **argv)
 
 // helpers
 
-void render_hud(const Camera &cam)
+void render_hud(const Camera &cam, const float fps)
 {
-    mvprintw(0, 0, "zoom     %6.1f x",  cam.zoom);
-    mvprintw(1, 0, "azimuth  %6.1f deg", clamp0(rad2deg(cam.azimuth)));
-    mvprintw(2, 0, "altitude %6.1f deg", clamp0(rad2deg(cam.altitude)));
+    mvprintw(0, 0, "framerate %6d fps", static_cast<int>(std::round(fps)));
+    mvprintw(1, 0, "zoom      %6.1f x", cam.zoom);
+    mvprintw(2, 0, "azimuth   %6.1f deg", clamp0(rad2deg(cam.azimuth)));
+    mvprintw(3, 0, "altitude  %6.1f deg", clamp0(rad2deg(cam.altitude)));
 }
 
 void handle_control(const int ch, Camera &cam)
@@ -276,18 +315,24 @@ int main(int argc, char **argv)
     Buffer buf(static_cast<unsigned int>(cols), static_cast<unsigned int>(rows), logical_x, logical_y);
 
     // view
-    Camera cam;         // default
-    Light light;        // default
+    Camera cam(args.zoom);  // constructor with zoom
+    Light light;            // default
     bool hud = false;
 
     // animation
     bool rotate = args.animate;
+    auto last = SteadyClock::now();
 
     // main render loop
     while (true)
     {
+        auto now = SteadyClock::now();
+        float dt = std::chrono::duration<float>(now - last).count(); // seconds since previous frame
+        last = now;
+        float fps = dt > 0.f ? 1.f / dt : 0.f;
+
         if (rotate) {
-            cam.rotate_left(ANIMATION_STEP);
+            cam.rotate_left(args.speed * dt);
         }
 
         // clear buffer
@@ -302,7 +347,7 @@ int main(int argc, char **argv)
         // render hud
         if (hud)
         {
-            render_hud(cam);
+            render_hud(cam, fps);
         }
 
         // draw buffer
@@ -336,6 +381,9 @@ int main(int argc, char **argv)
 
             handle_control(ch, cam);
         }
+
+        auto frame_deadline = now + std::chrono::duration<float>(FRAME_DURATION);
+        std::this_thread::sleep_until(frame_deadline);
     }
 
     endwin();

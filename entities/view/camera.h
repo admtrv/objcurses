@@ -18,6 +18,7 @@ public:
 
     // constructors
     Camera() : azimuth(0.0f), altitude(0.0f), zoom(std::clamp(1.0f, ZOOM_MIN, ZOOM_MAX)) {}
+    explicit Camera(float zoom) : azimuth(0.0f), altitude(0.0f), zoom(std::clamp(zoom, ZOOM_MIN, ZOOM_MAX)) {}
     Camera(float azimuth, float altitude, float zoom) :
         azimuth(rad_norm(azimuth)),
         altitude(std::clamp(altitude, -PI / 2, PI / 2)),

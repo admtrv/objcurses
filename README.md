@@ -19,6 +19,7 @@
 - Render `.obj` files directly in terminal
 - Real-time camera and directional light control
 - Basic color support from `.mtl` material files
+- Start animation with consistent auto-rotation
 - HUD overlay for additional stats
 - Minimal dependencies: C/C++, `ncurses`, math
 
@@ -27,7 +28,8 @@
 * Preview 3D files instantly without launching heavy editors
 * Generate custom ASCII art for neofetch or terminal splash
 * Style CLI tools or games with ASCII-based intros and visuals
-
+* Animate coding workspace with rotating retro-style ASCII models
+* Create stylish character-based GIFs from terminal-rendered scenes
 
 # Usage
 
@@ -38,25 +40,26 @@ objcurses [OPTIONS] <file.obj>
 ## Options
 
 ```
--c, --color        Enable colors from .mtl file
--l, --light        Disable light rotation
--a, --animate      Start with animated object
--f, --flip         Flip faces winding order
--x, --invert-x     Flip geometry along X axis
--y, --invert-y     Flip geometry along Y axis
--z, --invert-z     Flip geometry along Z axis
--h, --help         Print help
--v, --version      Print version
+-c, --color          Enable colors from .mtl file
+-l, --light          Disable light rotation
+-a, --animate <deg>  Start with animated object [default: 30.0 deg/s]
+-z, --zoom <x>       Provide initial zoom [default: 1.0 x]
+    --flip           Flip faces winding order
+    --invert-x       Flip geometry along X axis
+    --invert-y       Flip geometry along Y axis
+    --invert-z       Flip geometry along Z axis
+-h, --help           Print help
+-v, --version        Print version
 ```
 
 Examples:
 
 ```bash
-objcurses file.obj          # basic
-objcurses -c file.obj       # enable colors
-objcurses --light file.obj  # disable light rotation
-objcurses -c -l -z file.obj # flip z axis if blender model 
-
+objcurses file.obj               # basic
+objcurses -c file.obj            # enable colors
+objcurses -c -a -z 1.5 file.obj  # start animation with zoom 1.5 x
+objcurses -c -a 10 file.obj      # start animation with speed 10.0 deg/s
+objcurses -c --invert-z file.obj # flip z axis if blender model 
 ```
 
 ## Controls

@@ -6,21 +6,6 @@
 
 // helper functions
 
-// safe from string to int
-static std::optional<int> safe_stoi(const std::string &token)
-{
-    try {
-        size_t pos = 0;
-        int v = std::stoi(token, &pos, 10);
-        if (pos != token.size())
-            return std::nullopt;
-        return v;
-    }
-    catch (const std::exception &) {
-        return std::nullopt;
-    }
-}
-
 // from obj index to vector index
 static int relative_index(const int idx, int total_vertices)
 {
