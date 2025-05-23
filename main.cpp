@@ -323,6 +323,9 @@ int main(int argc, char **argv)
     bool rotate = args.animate;
     auto last = SteadyClock::now();
 
+    // optimizing drawing
+    bool needs_redraw = true;
+
     // main render loop
     while (true)
     {
@@ -333,25 +336,8 @@ int main(int argc, char **argv)
 
         if (rotate) {
             cam.rotate_left(args.speed * dt);
+            needs_redraw = true;
         }
-
-        // clear buffer
-        buf.clear();
-
-        // render model
-        Renderer::render(buf, obj, cam, light, args.static_light, args.color_support);
-
-        move(0, 0);
-        buf.printw();
-
-        // render hud
-        if (hud)
-        {
-            render_hud(cam, fps);
-        }
-
-        // draw buffer
-        refresh();
 
         // handle key
         int ch = getch();
@@ -361,27 +347,54 @@ int main(int argc, char **argv)
             getmaxyx(stdscr, rows, cols);
             const float lx = logical_y * static_cast<float>(cols) / (static_cast<float>(rows) * CHAR_ASPECT_RATIO);
             buf = Buffer(static_cast<unsigned int>(cols), static_cast<unsigned int>(rows), lx, logical_y);
-            continue;
+            needs_redraw = true;
         }
-
-        if (ch == 'q' || ch == 'Q')     // exit
+        else if (ch == 'q' || ch == 'Q')     // exit
         {
             break;
         }
-
-        if (ch == '\t')                 // toggle hud
+        else if (ch == '\t')                 // toggle hud
         {
             hud = !hud;
-            continue;
+            needs_redraw = true;
         }
-
-        if (ch != ERR)
+        else if (ch != ERR)
         {
-            rotate = false;
-
-            handle_control(ch, cam);
+            rotate = false;                // stop animation on first movement
+            handle_control(ch, cam);    // handle camera control
+            needs_redraw = true;
         }
 
+        // redrawing
+        if (needs_redraw)
+        {
+            // clear buffer
+            buf.clear();
+
+            // render model
+            Renderer::render(buf, obj, cam, light, args.static_light, args.color_support);
+
+            move(0, 0);
+            buf.printw();
+
+            // render hud
+            if (hud)
+            {
+                render_hud(cam, fps);
+            }
+
+            // draw buffer
+            refresh();
+
+            needs_redraw = false;
+        }
+        else if (hud) // update only hud
+        {
+            render_hud(cam, fps);
+            refresh();
+        }
+
+        // limiting fps
         auto frame_deadline = now + std::chrono::duration<float>(FRAME_DURATION);
         std::this_thread::sleep_until(frame_deadline);
     }

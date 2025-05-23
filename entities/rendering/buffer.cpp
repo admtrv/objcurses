@@ -180,21 +180,33 @@ void Buffer::printw() const
     for (unsigned int row = 0; row < y; row++)
     {
         ::move(static_cast<int>(row), 0);
+        int prev_color = -1;
 
         for (unsigned int col = 0; col < x; col++)
         {
             const Pixel &pixel = pixels[row * x + col];
 
-            if (const int color = pixel.material.has_value() ? (pixel.material.value() + 1) : 0; color > 0 && color < COLORS && color < COLOR_PAIRS)
+            if (const int color = pixel.material ? (pixel.material.value() + 1) : 0; color != prev_color)
             {
-                attron(COLOR_PAIR(color));
-                ::printw("%c", pixel.c);
-                attroff(COLOR_PAIR(color));
+                if (prev_color > 0)
+                {
+                    attroff(COLOR_PAIR(prev_color));
+                }
+
+                if (color > 0)
+                {
+                    attron(COLOR_PAIR(color));
+                }
+
+                prev_color = color;
             }
-            else
-            {
-                ::printw("%c", pixel.c);
-            }
+
+            ::printw("%c", pixel.c);
+        }
+
+        if (prev_color > 0)
+        {
+            attroff(COLOR_PAIR(prev_color));
         }
     }
 }
