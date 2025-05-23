@@ -25,6 +25,10 @@
 
 # Use Cases
 
+<p align="center">
+  <img src="resources/images/usage.gif" alt="TUI Demo Gif" width="800">
+</p>
+
 * Preview 3D files instantly without launching heavy editors
 * Generate custom ASCII art for neofetch or terminal splash
 * Style CLI tools or games with ASCII-based intros and visuals
