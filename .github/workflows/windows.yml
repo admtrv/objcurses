@@ -1,0 +1,84 @@
+name: windows|mingw64
+
+on:
+  push:
+    branches: [ 'main' ]
+    tags:
+    - '[0-9]+.[0-9]+.[0-9]+'
+  pull_request:
+    branches: [ 'main' ]
+
+env:
+  BUILD_TYPE: Release
+
+jobs:
+  build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+
+    steps:
+    - name: 'Checkout'
+      uses: actions/checkout@v4
+
+    - name: 'Setup mingw64'
+      uses: msys2/setup-msys2@v2
+      id: msys2
+      with:
+        msystem: MINGW64
+        update: true
+        install: >-
+          ncurses
+          ncurses-devel
+        pacboy: >-
+          toolchain:p
+          cmake:p
+          ninja:p
+
+    - name: 'Configure'
+      run: cmake -B build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DAPP_VERSION="${{github.ref_name}}"
+
+    - name: 'Build'
+      run: cmake --build build --config ${{env.BUILD_TYPE}}
+
+    - name: 'Run'
+      run: ./build/objcurses.exe --help
+
+    - name: 'Package'
+      run: |
+        cp /mingw64/bin/libgcc_s_seh-1.dll ./build/
+        cp /mingw64/bin/libstdc++-6.dll ./build/
+        cp /mingw64/bin/libwinpthread-1.dll ./build/
+
+    - name: 'Artifact'
+      uses: actions/upload-artifact@v4
+      with:
+        name: 'objcurses-windows'
+        path: |
+          build/*.exe
+          build/*.dll
+
+  release-to-github:
+    if: github.ref_type == 'tag'
+    needs:
+    - build
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+    - name: Download all the dists
+      uses: actions/download-artifact@v4
+      with:
+        name: 'objcurses-windows'
+        path: build/
+
+    - name: Zip
+      run: zip -j -r objcurses-windows-v${{github.ref_name}}.zip ./build/*.exe ./build/*.dll
+
+    - name: Release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: objcurses-windows-v${{github.ref_name}}.zip

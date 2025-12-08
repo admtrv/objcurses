@@ -1,4 +1,5 @@
 # build directory
+/build/
 /cmake-build-debug/
 /cmake-build-release/
 /cmake-build-sanitize/
@@ -8,3 +9,6 @@
 
 # ide settings
 /.idea
+
+# other
+*.zip
