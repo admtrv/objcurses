@@ -18,18 +18,26 @@ if(SANITIZE)
     add_compile_definitions(ASAN_OPTIONS="detect_leaks=1:strict_string_checks=1:check_initialization_order=1:detect_stack_use_after_return=1:detect_container_overflow=1:abort_on_error=1")
 endif()
 
+if (NOT DEFINED APP_VERSION)
+    set(APP_VERSION "0.0.0")
+endif()
+
+# generate the version.h
+configure_file(version.h.in version.h)
+
 # collect all source files recursively, excluding build directory
 file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "${CMAKE_SOURCE_DIR}/*.cpp")
 list(FILTER SOURCES EXCLUDE REGEX ".*/.*build.*/.*")
 
 # creating executable
 add_executable(${PROJECT_NAME} ${SOURCES})
-target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_SOURCE_DIR})
+target_include_directories(${PROJECT_NAME} PRIVATE ${CMAKE_SOURCE_DIR} ${CMAKE_BINARY_DIR})
+target_compile_definitions(${PROJECT_NAME} PRIVATE "NCURSES_STATIC")
 
 # linking ncurses library
 find_package(Curses REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE ${CURSES_LIBRARIES})
-target_include_directories(${PROJECT_NAME} PRIVATE ${CURSES_INCLUDE_DIR})
+target_include_directories(${PROJECT_NAME} PRIVATE ${CURSES_INCLUDE_DIR} ${CURSES_INCLUDE_DIR}/ncurses)
 
 # linking math library
 target_link_libraries(${PROJECT_NAME} PRIVATE m)

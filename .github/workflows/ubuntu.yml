@@ -1,0 +1,57 @@
+name: ubuntu
+
+on:
+  push:
+    branches: [ 'main' ]
+    tags:
+    - '[0-9]+.[0-9]+.[0-9]+'
+  pull_request:
+    branches: [ 'main' ]
+
+env:
+  BUILD_TYPE: Release
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: 'Checkout'
+      uses: actions/checkout@v4
+
+    - name: 'Configure'
+      run: cmake -B build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DAPP_VERSION="${{github.ref_name}}"
+
+    - name: 'Build'
+      run: cmake --build build --config ${{env.BUILD_TYPE}}
+
+    - name: 'Artifact'
+      uses: actions/upload-artifact@v4
+      with:
+        name: 'objcurses-linux'
+        path: |
+          build/objcurses
+
+  release-to-github:
+    if: github.ref_type == 'tag'
+    needs:
+    - build
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+    - name: Download all the dists
+      uses: actions/download-artifact@v4
+      with:
+        name: 'objcurses-linux'
+        path: build/
+
+    - name: Zip
+      run: zip -j -r objcurses-linux-v${{github.ref_name}}.zip ./build/objcurses
+
+    - name: Release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: objcurses-linux-v${{github.ref_name}}.zip
