@@ -14,7 +14,10 @@ inline constexpr float ZOOM_START = 1.0f;
 inline constexpr float ZOOM_STEP = 0.1f;
 inline constexpr float ZOOM_MIN = 0.10f;
 inline constexpr float ZOOM_MAX = 5.00f;
+inline constexpr float ALTITUDE_START = 0.00f;
+inline constexpr float AZIMUTH_START = 0.00f;
 
 // animation
 inline constexpr float FRAME_DURATION = 1.0f / 60.0f; // 60 fps
-inline constexpr float ANIMATION_STEP = 30.0f;
+inline constexpr float ANIMATION_STEP_ALTITUDE = 30.0f;
+inline constexpr float ANIMATION_STEP_AZIMUTH = 30.0f;

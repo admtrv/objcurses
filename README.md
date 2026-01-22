@@ -44,16 +44,29 @@ objcurses [OPTIONS] <file.obj>
 ## Options
 
 ```
--c, --color <theme>  Enable colors support, optional theme {dark|light|transparent}
--l, --light          Disable light rotation
--a, --animate <deg>  Start with animated object, optional speed [default: 30.0 deg/s]
--z, --zoom <x>       Provide initial zoom [default: 1.0 x]
-    --flip           Flip faces winding order
-    --invert-x       Flip geometry along X axis
-    --invert-y       Flip geometry along Y axis
-    --invert-z       Flip geometry along Z axis
--h, --help           Print help
--v, --version        Print version
+  -c, --color <theme>  Enable colors support, optional theme {dark|light|transparent}
+  -l, --light          Disable light rotation
+  -al <deg>            Start with animated altitude object, optional speed [default: 30.0 deg/s]
+  -az <deg>            Start with animated azimuth object, optional speed [default: 30.0 deg/s]
+  -z, --zoom <x>       Provide initial zoom [default: 1.0 x]
+  --azimuth <deg>       Provide initial azimuth [default: 0.0 deg]
+  --altitude <deg>       Provide initial altitude [default: 0.0 deg]
+      --flip           Flip faces winding order
+      --invert-x       Flip geometry along X axis
+      --invert-y       Flip geometry along Y axis
+      --invert-z       Flip geometry along Z axis
+  -h, --help           Print help
+  -v, --version        Print version
+
+Controls:
+  ←, h, a              Rotate left
+  →, l, d              Rotate right
+  ↑, k, w              Rotate up
+  ↓, j, s              Rotate down
+  +, i                 Zoom in
+  -, o                 Zoom out
+  Tab                  Toggle HUD
+  q                    Quit
 ```
 
 Examples:
@@ -62,8 +75,8 @@ Examples:
 objcurses file.obj                # basic
 objcurses -c file.obj             # enable colors
 objcurses -c transparent file.obj # set transparent color theme
-objcurses -c -a -z 1.5 file.obj   # start animation with zoom 1.5 x
-objcurses -c -a 10 file.obj       # start animation with speed 10.0 deg/s
+objcurses -c -al -z 1.5 file.obj  # start animation altitude with zoom 1.5 x
+objcurses -c -az 10 file.obj      # start animation azimuth with speed 10.0 deg/s
 objcurses -c --invert-z file.obj  # flip z axis if blender model 
 ```
 

@@ -8,3 +8,6 @@
 
 # ide settings
 /.idea
+
+#vscode config
+/.vscode/

@@ -114,8 +114,11 @@ static void print_help()
         "Options:\n"
         "  -c, --color <theme>  Enable colors support, optional theme {dark|light|transparent}\n"
         "  -l, --light          Disable light rotation\n"
-        "  -a, --animate <deg>  Start with animated object, optional speed [default: " << std::fixed << std::setprecision(1) << ANIMATION_STEP << std::defaultfloat << " deg/s]\n"
-        "  -z, --zoom <x>       Provide initial zoom [default: " << std::fixed << std::setprecision(1) << ZOOM_START << std::defaultfloat << " x]\n"
+        "  -al <deg>            Start with animated altitude object, optional speed [default: "<< std::fixed << std::setprecision(1) << ANIMATION_STEP_ALTITUDE << std::defaultfloat << " deg/s]\n"
+        "  -az <deg>            Start with animated azimuth object, optional speed [default: "<< std::fixed << std::setprecision(1) << ANIMATION_STEP_AZIMUTH << std::defaultfloat << " deg/s]\n"
+        "  -z, --zoom <x>       Provide initial zoom [default: "<< std::fixed << std::setprecision(1) << ZOOM_START << std::defaultfloat << " x]\n"
+        "  --azimuth <deg>       Provide initial azimuth [default: "<< std::fixed << std::setprecision(1) << AZIMUTH_START << std::defaultfloat << " deg]\n"
+        "  --altitude <deg>       Provide initial altitude [default: "<< std::fixed << std::setprecision(1) << ALTITUDE_START << std::defaultfloat << " deg]\n"
         "      --flip           Flip faces winding order\n"
         "      --invert-x       Flip geometry along X axis\n"
         "      --invert-y       Flip geometry along Y axis\n"
@@ -142,19 +145,24 @@ static void print_version()
 struct Args {
     std::filesystem::path input_file;
 
-    bool color_support = false;         // -c / --color
+    bool color_support = false;             // -c / --color
     Theme theme = Theme::Dark;
 
-    bool static_light = false;          // -l / --light
-    bool flip_faces = false;            // -f / --flip
-    bool invert_x = false;              // -x / --invert-x
-    bool invert_y = false;              // -y / --invert-y
-    bool invert_z = false;              // -z / --invert-z
+    bool static_light = false;              // -l / --light
+    bool flip_faces = false;                // -f / --flip
+    bool invert_x = false;                  // -x / --invert-x
+    bool invert_y = false;                  // -y / --invert-y
+    bool invert_z = false;                  // -z / --invert-z
 
-    bool animate = false;               // -a / --animate
-    float speed = ANIMATION_STEP;   // deg/s
+    bool animate_altitude = false;          // -al
+    bool animate_azimuth = false;           // -az
+    float speed_altitude = ANIMATION_STEP_ALTITUDE;  // deg/s
+    float speed_azimuth = ANIMATION_STEP_AZIMUTH;    // deg/s
 
-    float zoom = ZOOM_START;            // -z / --zoom
+    float zoom = ZOOM_START;                // -z / --zoom
+
+    float altitude = ALTITUDE_START;        // --altitude
+    float azimuth = AZIMUTH_START;          // --azimuth
 };
 
 static Args parse_args(int argc, char **argv)
@@ -208,18 +216,30 @@ static Args parse_args(int argc, char **argv)
         {
             a.static_light = true;
         }
-        else if (arg == "-a" || arg == "--animate")
+        else if (arg == "-az")
         {
-            a.animate = true;
+            a.animate_azimuth = true;
 
             if (i + 1 < argc && argv[i + 1][0] != '-')
             {
                 if (auto val = safe_stof(argv[i + 1]); val)
                 {
-                    a.speed = val.value();
+                    a.speed_azimuth = val.value();
                     ++i;
                 }
-                // else - file name
+            }
+        }
+        else if (arg == "-al")
+        {
+            a.animate_altitude = true;
+
+            if (i + 1 < argc && argv[i + 1][0] != '-')
+            {
+                if (auto val = safe_stof(argv[i + 1]); val)
+                {
+                    a.speed_altitude = val.value();
+                    ++i;
+                }
             }
         }
         else if (arg == "-z" || arg == "--zoom")
@@ -239,6 +259,42 @@ static Args parse_args(int argc, char **argv)
             }
 
             a.zoom = val.value();
+        }
+        else if (arg == "--altitude")
+        {
+            if (++i == argc)
+            {
+                std::cerr << "error: altitude needs value\n";
+                std::exit(1);
+            }
+
+            auto val = safe_stof(argv[i]);
+
+            if (!val)
+            {
+                std::cerr << "error: invalid altitude value\n";
+                std::exit(1);
+            }
+
+            a.altitude = val.value();
+        }
+        else if (arg == "--azimuth")
+        {
+            if (++i == argc)
+            {
+                std::cerr << "error: azimuth needs value\n";
+                std::exit(1);
+            }
+
+            auto val = safe_stof(argv[i]);
+
+            if (!val)
+            {
+                std::cerr << "error: invalid azimuth value\n";
+                std::exit(1);
+            }
+
+            a.azimuth = val.value();
         }
         else if (arg == "--flip")
         {
@@ -386,8 +442,12 @@ int main(int argc, char **argv)
     Light light;            // default
     bool hud = false;
 
+    // change initial view
+    cam.altitude = deg2rad(args.altitude);
+    cam.azimuth = deg2rad(args.azimuth);
+
     // animation
-    bool rotate = args.animate;
+    bool rotate = args.animate_altitude || args.animate_azimuth;
     auto last = SteadyClock::now();
 
     // optimizing drawing
@@ -402,7 +462,14 @@ int main(int argc, char **argv)
         float fps = dt > 0.f ? 1.f / dt : 0.f;
 
         if (rotate) {
-            cam.rotate_left(args.speed * dt);
+            if (args.animate_altitude)
+            {
+                cam.rotate_down(args.speed_altitude * dt);
+            }
+            if (args.animate_azimuth)
+            {
+                cam.rotate_left(args.speed_azimuth * dt);
+            }
             needs_redraw = true;
         }
 

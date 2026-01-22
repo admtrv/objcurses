@@ -34,11 +34,11 @@ public:
     }
     void rotate_up(float degree = ANGLE_STEP)
     {
-        altitude = std::min(altitude + deg2rad(degree),  PI / 2);
+        altitude = rad_norm(altitude  - deg2rad(degree));
     }
     void rotate_down(float degree = ANGLE_STEP)
     {
-        altitude = std::max(altitude - deg2rad(degree), -PI / 2);
+        altitude = rad_norm(altitude  - deg2rad(degree));
     }
 
     void zoom_in(float step = ZOOM_STEP)
