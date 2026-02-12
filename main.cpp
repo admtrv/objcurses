@@ -2,7 +2,17 @@
  * main.cpp
  */
 
+#ifdef _WIN32
+
+// for msys2 on windows platform use
+#include <ncurses/ncurses.h>
+// but sounds like it does not support it, if I have
+// time I will change it all.
+
+#elif
 #include <ncurses.h>
+#endif
+
 
 #include <algorithm>
 #include <cmath>
@@ -51,6 +61,137 @@ void init_ncurses()
 
 void init_colors(const std::vector<Material> &materials, Theme theme)
 {
+    //OK, this is the way that Linux use ncurses to show color
+    //but for Windows, I think I should change it all by using
+    //ANSI things
+
+    //Maybe some platform isn't Linux but the things are still
+    //available for them, so I use _WIN32 to use for Windows
+#ifdef _WIN32
+
+    if (!has_colors())
+        return;
+    start_color();
+    const short BG_DEFAULT = -1;
+    short bg = COLOR_BLACK;
+    short hud = COLOR_WHITE;
+    switch (theme)
+    {
+        case Theme::Dark: bg = COLOR_BLACK; hud = COLOR_WHITE; break;
+        case Theme::Light: bg = COLOR_WHITE; hud = COLOR_BLACK; break;
+        case Theme::Transparent: bg = BG_DEFAULT; hud = COLOR_WHITE; break;
+    }
+    if (bg == BG_DEFAULT)
+        use_default_colors();
+    const size_t max_pairs = static_cast<size_t>(COLOR_PAIRS > 2 ? COLOR_PAIRS - 2 : 0);
+    size_t limit = std::min(materials.size(), max_pairs);
+    // 最近邻 8 色映射（更稳健，避免白被判成黄）
+    auto map_to_basic_color = [](float r, float g, float b) -> short {
+        r = std::clamp(r, 0.0f, 1.0f);
+        g = std::clamp(g, 0.0f, 1.0f);
+        b = std::clamp(b, 0.0f, 1.0f);
+        // 如果想用伽马校正以更贴近视觉感知，可以启用下面两行
+        // auto gamma = [](float v){ return std::pow(v, 2.2f); };
+        // r = gamma(r); g = gamma(g); b = gamma(b);
+        const std::array<std::pair<short, std::array<float,3>>,8> centers = {{
+            {COLOR_BLACK,  {0.0f, 0.0f, 0.0f}},
+            {COLOR_RED,    {1.0f, 0.0f, 0.0f}},
+            {COLOR_GREEN,  {0.0f, 1.0f, 0.0f}},
+            {COLOR_YELLOW, {1.0f, 1.0f, 0.0f}},
+            {COLOR_BLUE,   {0.0f, 0.0f, 1.0f}},
+            {COLOR_MAGENTA,{1.0f, 0.0f, 1.0f}},
+            {COLOR_CYAN,   {0.0f, 1.0f, 1.0f}},
+            {COLOR_WHITE,  {1.0f, 1.0f, 1.0f}}
+        }};
+        short best = COLOR_WHITE;
+        float best_dist = std::numeric_limits<float>::infinity();
+        std::array<float,3> src{r,g,b};
+        for (const auto &c : centers) {
+            const auto &cent = c.second;
+            float dr = src[0] - cent[0];
+            float dg = src[1] - cent[1];
+            float db = src[2] - cent[2];
+            float d2 = dr*dr + dg*dg + db*db;
+            if (d2 < best_dist) { best_dist = d2; best = c.first; }
+        }
+        return best;
+    };
+    // RGB -> xterm-256 index (choose between color cube and gray)
+    auto rgb_to_xterm256 = [](float r, float g, float b) -> int {
+        r = std::clamp(r, 0.0f, 1.0f);
+        g = std::clamp(g, 0.0f, 1.0f);
+        b = std::clamp(b, 0.0f, 1.0f);
+        int ri = static_cast<int>(std::round(r * 5.0f));
+        int gi = static_cast<int>(std::round(g * 5.0f));
+        int bi = static_cast<int>(std::round(b * 5.0f));
+        ri = std::clamp(ri, 0, 5);
+        gi = std::clamp(gi, 0, 5);
+        bi = std::clamp(bi, 0, 5);
+        int cube_index = 16 + 36 * ri + 6 * gi + bi;
+        float lum = 0.2126f * r + 0.7152f * g + 0.0722f * b;
+        int gray_level = static_cast<int>(std::round(lum * 23.0f));
+        gray_level = std::clamp(gray_level, 0, 23);
+        int gray_index = 232 + gray_level;
+        auto cube_center = [&](int r6, int g6, int b6){
+            return std::array<float,3>{ r6 / 5.0f, g6 / 5.0f, b6 / 5.0f };
+        };
+        auto gray_center = [&](int gray){
+            float v = gray / 23.0f;
+            return std::array<float,3>{ v, v, v };
+        };
+        auto dist2 = [](const std::array<float,3>& a, const std::array<float,3>& b){
+            float dr = a[0]-b[0], dg = a[1]-b[1], db = a[2]-b[2];
+            return dr*dr + dg*dg + db*db;
+        };
+        auto ccenter = cube_center(ri, gi, bi);
+        auto gcenter = gray_center(gray_level);
+        std::array<float,3> orig{r,g,b};
+        float d_cube = dist2(orig, ccenter);
+        float d_gray = dist2(orig, gcenter);
+        return (d_gray < d_cube) ? gray_index : cube_index;
+    };
+    const bool can_change = can_change_color() != 0;
+    const int n_colors = COLORS;
+    const bool has_256 = (n_colors >= 256);
+    for (size_t i = 0; i < limit; ++i)
+    {
+        int pair = static_cast<int>(i) + 1;
+        const auto &d = materials[i].diffuse; // x,y,z in 0..1
+        if (has_256)
+        {
+            int mapped = rgb_to_xterm256(d.x, d.y, d.z);
+            if (mapped >= n_colors) mapped = mapped % n_colors;
+            init_pair(pair, mapped, bg);
+        }
+        else if (can_change)
+        {
+            int color_index = pair;
+            if (color_index < n_colors)
+            {
+                init_color(color_index,
+                           static_cast<short>(std::clamp(d.x, 0.0f, 1.0f) * 1000.0f),
+                           static_cast<short>(std::clamp(d.y, 0.0f, 1.0f) * 1000.0f),
+                           static_cast<short>(std::clamp(d.z, 0.0f, 1.0f) * 1000.0f));
+                init_pair(pair, color_index, bg);
+            }
+            else
+            {
+                short mapped = map_to_basic_color(d.x, d.y, d.z);
+                init_pair(pair, mapped, bg);
+            }
+        }
+        else
+        {
+            short mapped = map_to_basic_color(d.x, d.y, d.z);
+            init_pair(pair, mapped, bg);
+        }
+    }
+    g_hud_pair = static_cast<int>(limit) + 1;
+    if (g_hud_pair < COLOR_PAIRS)
+        init_pair(g_hud_pair, hud, bg);
+    bkgd(' ' | COLOR_PAIR(g_hud_pair));
+    
+#elif
     if (!has_colors() || !can_change_color())
         return;
 
@@ -102,6 +243,8 @@ void init_colors(const std::vector<Material> &materials, Theme theme)
         init_pair(g_hud_pair, hud, bg);
 
     bkgd(' ' | COLOR_PAIR(g_hud_pair));
+#endif
+
 }
 
 // cli

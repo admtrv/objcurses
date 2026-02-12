@@ -99,6 +99,13 @@ sudo apt update
 sudo apt install cmake g++ libncurses6 libtinfo6 -y
 ```
 
+### For Windows platform, you might to use Msys2 for the build
+
+```bash
+pacman -S mingw-w64-ucrt-x86_64-toolchain
+pacman -S mingw-w64-x86_64-ncurses
+```
+
 ### Clone the Repository
 
 ```bash
@@ -120,6 +127,13 @@ make
 ```bash
 sudo make install
 ```
+
+### If you troubled on `The procedure entry point nanosleep64 could not be located in the dynamic link library  ...` on Windows platform, please
+```bash
+//in Msys2 cli
+where libwinpthread-1.dll
+```
+and then put that file to the same dir of `objcurses.exe` , it will fix the problem.
 
 ---
 

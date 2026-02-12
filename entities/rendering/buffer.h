@@ -9,7 +9,15 @@
 #include <cmath>
 #include <algorithm>
 #include <stdexcept>
+
+#ifdef _WIN32
+#include <ncurses/ncurses.h>
+// for msys2 on windows platform use
+
+#elif
 #include <ncurses.h>
+#endif
+
 #include <iostream>
 
 #include "utils/mathematics.h"
